@@ -5,7 +5,8 @@
 
 Allochthon::Allochthon(QWidget *parent, Qt::WFlags flags)
   : QMainWindow(parent, flags),
-    netManager(NULL)
+    netManager(NULL),
+	pendingReply(NULL)
 {
 	ui.setupUi(this);
 
@@ -17,6 +18,7 @@ Allochthon::Allochthon(QWidget *parent, Qt::WFlags flags)
 	loadReddits();
 
 	netManager = new QNetworkAccessManager(this);
+	netManager->setCookieJar(cookies = new QNetworkCookieJar());
 
 	connect(ui.add, SIGNAL(clicked()), this, SLOT(addReddit()));
 	connect(ui.remove, SIGNAL(clicked()), this, SLOT(removeReddit()));
@@ -24,13 +26,19 @@ Allochthon::Allochthon(QWidget *parent, Qt::WFlags flags)
 	connect(netManager, SIGNAL(finished(QNetworkReply*)), this, SLOT(replyFinished(QNetworkReply*)));
 	connect(ui.tabs, SIGNAL(tabCloseRequested(int)), this, SLOT(tabCloseRequested(int)));
 	connect(ui.actionClose_Tab, SIGNAL(triggered()), this, SLOT(closeTab()));
-	connect(ui.actionSwitch_Tab_View, SIGNAL(triggered()), this, SLOT(switchView()));
 	connect(ui.actionAbout_Allochthon, SIGNAL(triggered()), this, SLOT(aboutbox()));
 	connect(ui.actionClear_Queue, SIGNAL(triggered()), this, SLOT(clearQueue()));
 
 	ui.statusBar->addWidget(status = new QLabel());
 
+	progress = new QProgressBar(this);
+	progress->setRange(0, 0);
+	progress->setVisible(false);
+
+	ui.statusBar->addWidget(progress);
+
 	updateStatusBar();
+	updateButtonStatus();
 }
 
 Allochthon::~Allochthon()
@@ -99,6 +107,7 @@ void Allochthon::addReddit()
 		ui.reddits->addItem(reddit);
 		ui.reddits->sortItems();
 	}
+	updateButtonStatus();
 }
 
 void Allochthon::removeReddit()
@@ -107,15 +116,22 @@ void Allochthon::removeReddit()
 	ui.reddits->setCurrentItem(NULL);
 	if (item)
 		delete item;
+
+	updateButtonStatus();
 }
 
 void Allochthon::redditSelectionChanged()
 {
+	clearQueue();
+	cancelRequest();
+
 	QListWidgetItem* item = ui.reddits->currentItem();
 	QString reddit = item ? item->text() : QString();
 
 	if (!reddit.isEmpty())
 		browseReddit(reddit);
+
+	updateButtonStatus();	
 }
 
 void Allochthon::browseReddit(QString reddit)
@@ -123,6 +139,10 @@ void Allochthon::browseReddit(QString reddit)
 	QUrl url(QString("http://www.reddit.com/r/%1/.json?limit=100").arg(reddit));
 
 	QNetworkReply* reply = netManager->get(QNetworkRequest(url));	
+
+	pendingReply = reply;
+
+	progress->setVisible(true);
 }
 
 void Allochthon::replyFinished(QNetworkReply* reply)
@@ -138,6 +158,10 @@ void Allochthon::replyFinished(QNetworkReply* reply)
 		processResponse(result.toMap());
 	
 	reply->deleteLater();
+
+	pendingReply = NULL;
+
+	progress->setVisible(false);
 }
 
 void Allochthon::processResponse(QVariantMap doc)
@@ -168,10 +192,8 @@ void Allochthon::handleStories()
 	{
 		RedditStory story = stories.takeFirst();
 		if (!history.contains(story.id))
-		{
-			history[story.id] = QVariant(story.pubDate);
-
-			ui.tabs->addTab(new RedditBrowser(story), story.title);
+		{			
+			ui.tabs->addTab(new RedditBrowser(story, history), story.title);
 		}
 	}	
 	updateStatusBar();
@@ -191,25 +213,14 @@ void Allochthon::closeTab()
 		tabCloseRequested(idx);
 }
 
-void Allochthon::switchView()
-{
-	int idx = ui.tabs->currentIndex();
-	if (idx >= 0)
-	{
-		RedditBrowser* browser = dynamic_cast<RedditBrowser*>(ui.tabs->widget(idx));
-
-		if (browser)
-			browser->switchView();
-	}
-}
-
 void Allochthon::aboutbox()
 {
-	QMessageBox::information(this, "Allochthon", "Allochthon by Roland Rabien (figbug@gmail.com)");
+	QMessageBox::information(this, "Allochthon", "Allochthon by Roland Rabien (figbug@gmail.com)\n\nVersion: " VERSION);
 }
 
 void Allochthon::clearQueue()
 {
+	ui.tabs->clear();
 	stories.clear();
 
 	updateStatusBar();
@@ -218,4 +229,21 @@ void Allochthon::clearQueue()
 void Allochthon::updateStatusBar()
 {
 	status->setText(QString("To View: %1").arg(ui.tabs->count() + stories.count()));
+}
+
+void Allochthon::updateButtonStatus()
+{
+	ui.remove->setEnabled(ui.reddits->currentItem() != NULL);
+}
+
+void Allochthon::cancelRequest()
+{
+	if (pendingReply)
+	{
+		pendingReply->abort();
+		pendingReply->deleteLater();
+		pendingReply = NULL;
+
+		progress->setVisible(true);
+	}
 }

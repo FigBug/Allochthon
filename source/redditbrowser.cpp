@@ -1,20 +1,25 @@
 #include "mainheaders.h"
 #include "redditbrowser.h"
 
-RedditBrowser::RedditBrowser(RedditStory story_)
+RedditBrowser::RedditBrowser(RedditStory story_, QVariantHash& history_)
   : QWidget(NULL),
 	story(story_),
-	showingComments(false)
+	showingComments(false),
+	firstShow(true),
+	history(history_)
 {
-	webview = new QWebView(this);
+	webview = new QWebView(this);	
+
 	url = new QLineEdit(this);
 	toggle = new QPushButton("Toggle Comments", this);
+	openInBrowser = new QPushButton("Open In Browser", this);
 	progress = new QProgressBar(this);
 	progress->setMaximumWidth(75);
 
 	QBoxLayout* topLayout = new QBoxLayout(QBoxLayout::LeftToRight);
 	topLayout->addWidget(url);
 	topLayout->addWidget(toggle);
+	topLayout->addWidget(openInBrowser);	
 	topLayout->addWidget(progress);
 
 	QBoxLayout* mainLayout = new QBoxLayout(QBoxLayout::TopToBottom, this);
@@ -24,6 +29,7 @@ RedditBrowser::RedditBrowser(RedditStory story_)
 	setLayout(mainLayout);
 
 	connect(toggle, SIGNAL(clicked()), this, SLOT(switchView()));
+	connect(openInBrowser, SIGNAL(clicked()), this, SLOT(openBrowser()));
 	connect(webview, SIGNAL(loadFinished(bool)), this,  SLOT(loadFinished(bool)));
 	connect(webview, SIGNAL(loadStarted()), this, SLOT(loadStarted()));
 	connect(webview, SIGNAL(urlChanged(const QUrl&)), this, SLOT(urlChanged(const QUrl&)));
@@ -56,6 +62,15 @@ void RedditBrowser::resizeEvent(QResizeEvent* event)
 {
 }
 
+void RedditBrowser::showEvent(QShowEvent* event)
+{
+	if (firstShow)
+	{
+		history[story.id] = QVariant(story.pubDate);
+		firstShow = false;
+	}
+}
+
 void RedditBrowser::loadFinished(bool ok)
 {
 	progress->setValue(0);
@@ -75,4 +90,9 @@ void RedditBrowser::loadStarted()
 void RedditBrowser::urlChanged(const QUrl& u)
 {
 	url->setText(u.toString());
+}
+
+void RedditBrowser::openBrowser()
+{
+	QDesktopServices::openUrl(QUrl(url->text()));
 }

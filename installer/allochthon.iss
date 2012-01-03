@@ -35,7 +35,7 @@ Source: "C:\Qt\4.8.0\bin\QtCore4.dll"; DestDir: "{app}"; Flags: ignoreversion
 Source: "C:\Qt\4.8.0\bin\QtGui4.dll"; DestDir: "{app}"; Flags: ignoreversion
 Source: "C:\Qt\4.8.0\bin\QtNetwork4.dll"; DestDir: "{app}"; Flags: ignoreversion
 Source: "C:\Qt\4.8.0\bin\QtWebKit4.dll"; DestDir: "{app}"; Flags: ignoreversion
-Source: "C:\dev.mine\plugins\*.*"; DestDir: "{app}\plugins"; Flags: recursesubdirs ignoreversion
+Source: "C:\dev.mine\plugins\*.*"; DestDir: "{app}"; Flags: recursesubdirs ignoreversion
 Source: "C:\Program Files (x86)\Microsoft Visual Studio 9.0\VC\redist\x86\Microsoft.VC90.CRT\msvcp90.dll"; DestDir: "{app}"; Flags: ignoreversion
 Source: "C:\Program Files (x86)\Microsoft Visual Studio 9.0\VC\redist\x86\Microsoft.VC90.CRT\msvcr90.dll"; DestDir: "{app}"; Flags: ignoreversion
 ; NOTE: Don't use "Flags: ignoreversion" on any shared system files

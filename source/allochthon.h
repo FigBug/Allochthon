@@ -20,12 +20,11 @@ private slots:
 	void handleStories();
 	void tabCloseRequested(int index);
 	void closeTab();
-	void switchView();
 	void aboutbox();
 	void clearQueue();
 
 protected:
-	void closeEvent(QCloseEvent* event);	
+	void closeEvent(QCloseEvent* event);		
 
 private:
 	void restoreLayout();
@@ -34,13 +33,19 @@ private:
 	void browseReddit(QString reddit);	
 	void processResponse(QVariantMap doc);	
 	void updateStatusBar();
+	void updateButtonStatus();
+	void cancelRequest();
 
 	Ui::allochthonClass ui;
 
 	QNetworkAccessManager* netManager;
+	QNetworkCookieJar* cookies;
 
 	QVariantHash history;
 	QList<RedditStory> stories;
 
 	QLabel* status;
+	QProgressBar* progress;
+
+	QNetworkReply* pendingReply;
 };
