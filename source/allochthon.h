@@ -33,6 +33,7 @@ private:
 	void saveReddits();		
 	void browseReddit(QString reddit);	
 	void processResponse(QVariantMap doc);	
+	void updateStatusBar();
 
 	Ui::allochthonClass ui;
 
@@ -40,4 +41,6 @@ private:
 
 	QVariantHash history;
 	QList<RedditStory> stories;
+
+	QLabel* status;
 };

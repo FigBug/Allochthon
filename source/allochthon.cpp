@@ -27,6 +27,10 @@ Allochthon::Allochthon(QWidget *parent, Qt::WFlags flags)
 	connect(ui.actionSwitch_Tab_View, SIGNAL(triggered()), this, SLOT(switchView()));
 	connect(ui.actionAbout_Allochthon, SIGNAL(triggered()), this, SLOT(aboutbox()));
 	connect(ui.actionClear_Queue, SIGNAL(triggered()), this, SLOT(clearQueue()));
+
+	ui.statusBar->addWidget(status = new QLabel());
+
+	updateStatusBar();
 }
 
 Allochthon::~Allochthon()
@@ -169,7 +173,8 @@ void Allochthon::handleStories()
 
 			ui.tabs->addTab(new RedditBrowser(story), story.title);
 		}
-	}
+	}	
+	updateStatusBar();
 }
 
 void Allochthon::tabCloseRequested(int index)
@@ -206,4 +211,11 @@ void Allochthon::aboutbox()
 void Allochthon::clearQueue()
 {
 	stories.clear();
+
+	updateStatusBar();
+}
+
+void Allochthon::updateStatusBar()
+{
+	status->setText(QString("To View: %1").arg(ui.tabs->count() + stories.count()));
 }
