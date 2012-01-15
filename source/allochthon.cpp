@@ -6,7 +6,8 @@
 Allochthon::Allochthon(QWidget *parent, Qt::WFlags flags)
   : QMainWindow(parent, flags),
     netManager(NULL),
-	pendingReply(NULL)
+	pendingReply(NULL),
+	timerId(0)
 {
 	ui.setupUi(this);
 
@@ -28,14 +29,17 @@ Allochthon::Allochthon(QWidget *parent, Qt::WFlags flags)
 	connect(ui.actionClose_Tab, SIGNAL(triggered()), this, SLOT(closeTab()));
 	connect(ui.actionAbout_Allochthon, SIGNAL(triggered()), this, SLOT(aboutbox()));
 	connect(ui.actionClear_Queue, SIGNAL(triggered()), this, SLOT(clearQueue()));
+	connect(ui.actionClear_Queue_Mark, SIGNAL(triggered()), this, SLOT(clearQueueMark()));
+	connect(ui.actionUndo_Closed_Tab, SIGNAL(triggered()), this, SLOT(undoCloseTab()));
 
 	ui.statusBar->addWidget(status = new QLabel());
 
 	progress = new QProgressBar(this);
+	progress->setMaximumWidth(175);
 	progress->setRange(0, 0);
 	progress->setVisible(false);
 
-	ui.statusBar->addWidget(progress);
+	ui.statusBar->addPermanentWidget(progress);
 
 	updateStatusBar();
 	updateButtonStatus();
@@ -84,7 +88,7 @@ void Allochthon::loadReddits()
 	ui.reddits->clear();
 	ui.reddits->addItems(reddits);
 
-	history = QSettings().value("reddits/history").toHash();
+	loadHistory();
 }
 
 void Allochthon::saveReddits()
@@ -94,8 +98,8 @@ void Allochthon::saveReddits()
 	for (int i = 0; i < ui.reddits->count(); i++)
 		items.append(ui.reddits->item(i)->text());
 
-	QSettings().setValue("reddits/list", items);
-	QSettings().setValue("reddits/history", history);
+	QSettings().setValue("reddits/list", items);	
+	saveHistory();
 }
 
 void Allochthon::addReddit()
@@ -193,17 +197,40 @@ void Allochthon::handleStories()
 		RedditStory story = stories.takeFirst();
 		if (!history.contains(story.id))
 		{			
-			ui.tabs->addTab(new RedditBrowser(story, history), story.title);
+			openStory(story);
 		}
 	}	
+}
+
+void Allochthon::openStory(RedditStory story, int pos, bool activate)
+{
+	RedditBrowser* rb;
+
+	int idx = ui.tabs->insertTab(pos, rb = new RedditBrowser(story, history), story.title);
+	ui.tabs->setIconSize(QSize(16,16));
+
+	if (activate)
+		ui.tabs->setCurrentIndex(idx);
+
+	connect(rb, SIGNAL(loadStarted()), this, SLOT(loadStarted()));
+	connect(rb, SIGNAL(loadFinished()), this, SLOT(loadFinished()));
+
 	updateStatusBar();
 }
 
 void Allochthon::tabCloseRequested(int index)
 {
+	RedditBrowser* page = dynamic_cast<RedditBrowser*>(ui.tabs->widget(index));
+
+	closedStories.append(page->getStory());
+
 	ui.tabs->removeTab(index);
+	delete page;
 
 	handleStories();
+
+	if (ui.tabs->count() == 0 || (ui.tabs->count() + stories.count()) % 20 == 0)
+		saveHistory();
 }
 
 void Allochthon::closeTab()
@@ -211,6 +238,16 @@ void Allochthon::closeTab()
 	int idx = ui.tabs->currentIndex();
 	if (idx >= 0)
 		tabCloseRequested(idx);
+}
+
+void Allochthon::undoCloseTab()
+{
+	if (closedStories.size() > 0)
+	{
+		RedditStory story = closedStories.takeLast();
+
+		openStory(story, 0, true);
+	}
 }
 
 void Allochthon::aboutbox()
@@ -224,6 +261,25 @@ void Allochthon::clearQueue()
 	stories.clear();
 
 	updateStatusBar();
+	saveHistory();
+}
+
+void Allochthon::clearQueueMark()
+{
+	for (int i = 0; i < ui.tabs->count(); i++)
+	{
+		RedditBrowser* br = dynamic_cast<RedditBrowser*>(ui.tabs->widget(i));
+		br->markAsRead();
+	}
+
+	for (int i = 0; i < stories.count(); i++)
+	{
+		RedditStory story = stories[i];
+		history[story.id] = QVariant(story.pubDate);
+	}
+
+	clearQueue();
+	saveHistory();
 }
 
 void Allochthon::updateStatusBar()
@@ -245,5 +301,92 @@ void Allochthon::cancelRequest()
 		pendingReply = NULL;
 
 		progress->setVisible(true);
+	}
+}
+
+void Allochthon::saveHistory()
+{
+	QDir dataDir = QDir(QDesktopServices::storageLocation(QDesktopServices::DataLocation));
+	dataDir.mkpath(dataDir.absolutePath());
+	QString historyFile = dataDir.filePath("history.dat");
+
+	QFile file(historyFile);
+	file.open(QIODevice::WriteOnly);
+	QDataStream out(&file);
+
+	// Write a header with a "magic number" and a version
+	out << (quint32)0xC1E4A356;
+	out << (quint32)1;
+	out << (quint32)0; // flags
+
+	out.setVersion(QDataStream::Qt_4_6);
+
+	out << history;
+}
+
+void Allochthon::loadHistory()
+{
+	QString historyFile = QDir(QDesktopServices::storageLocation(QDesktopServices::DataLocation)).filePath("history.dat");
+	if (QFileInfo(historyFile).exists())
+	{
+		QFile file(historyFile);
+		file.open(QIODevice::ReadOnly);
+		QDataStream in(&file);
+
+		// Write a header with a "magic number" and a version
+		quint32 magic;
+		quint32 ver;
+		quint32 flags;
+
+		in >> magic;
+		in >> ver;
+		in >> flags;
+
+		in.setVersion(QDataStream::Qt_4_6);
+
+		in >> history;
+	}
+}
+
+void Allochthon::loadFinished()
+{
+}
+
+void Allochthon::loadStarted()
+{
+	if (timerId == 0)
+		timerId = startTimer(30);
+}
+
+void Allochthon::timerEvent(QTimerEvent* event)
+{
+	int browsersLoading = 0;
+
+	for (int i = 0; i < ui.tabs->count(); i++)
+	{
+		RedditBrowser* rb = dynamic_cast<RedditBrowser*>(ui.tabs->widget(i));
+
+		if (rb->isLoading())
+		{
+			int frame = rb->getFrame() + 1;
+			if (frame >= spinner.getNumFrames())
+				frame = 0;
+
+			ui.tabs->setTabIcon(i, spinner.getFrame(frame));
+			rb->setFrame(frame);
+
+			browsersLoading++;
+		}
+		else if (!rb->isLoading() && rb->getFrame() >= 0)
+		{
+			ui.tabs->setTabIcon(i, QIcon());
+			rb->setFrame(-1);
+		}
+	}
+
+	if (browsersLoading == 0)
+	{
+		killTimer(timerId);
+		timerId = 0;
 	}
 }

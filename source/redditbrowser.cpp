@@ -6,21 +6,20 @@ RedditBrowser::RedditBrowser(RedditStory story_, QVariantHash& history_)
 	story(story_),
 	showingComments(false),
 	firstShow(true),
-	history(history_)
+	history(history_),
+	loading(false),
+	frame(-1)
 {
 	webview = new QWebView(this);	
 
 	url = new QLineEdit(this);
-	toggle = new QPushButton("Toggle Comments", this);
+	toggle = new QPushButton("Show Comments", this);
 	openInBrowser = new QPushButton("Open In Browser", this);
-	progress = new QProgressBar(this);
-	progress->setMaximumWidth(75);
 
 	QBoxLayout* topLayout = new QBoxLayout(QBoxLayout::LeftToRight);
 	topLayout->addWidget(url);
 	topLayout->addWidget(toggle);
 	topLayout->addWidget(openInBrowser);	
-	topLayout->addWidget(progress);
 
 	QBoxLayout* mainLayout = new QBoxLayout(QBoxLayout::TopToBottom, this);
 	mainLayout->addLayout(topLayout);
@@ -30,15 +29,9 @@ RedditBrowser::RedditBrowser(RedditStory story_, QVariantHash& history_)
 
 	connect(toggle, SIGNAL(clicked()), this, SLOT(switchView()));
 	connect(openInBrowser, SIGNAL(clicked()), this, SLOT(openBrowser()));
-	connect(webview, SIGNAL(loadFinished(bool)), this,  SLOT(loadFinished(bool)));
-	connect(webview, SIGNAL(loadStarted()), this, SLOT(loadStarted()));
+	connect(webview, SIGNAL(loadFinished(bool)), this,  SLOT(loadFinishedInt(bool)));
+	connect(webview, SIGNAL(loadStarted()), this, SLOT(loadStartedInt()));
 	connect(webview, SIGNAL(urlChanged(const QUrl&)), this, SLOT(urlChanged(const QUrl&)));
-
-	progress->setValue(0);
-	progress->setRange(0, 1);
-	progress->setEnabled(false);
-	progress->setTextVisible(false);
-	progress->setVisible(false);
 
 	webview->load(QUrl(story.link));
 	url->setText(story.link);
@@ -56,6 +49,8 @@ void RedditBrowser::switchView()
 	url->setText(urlText);
 
 	showingComments = !showingComments;
+
+	toggle->setText(showingComments ? "Show Story" : "Show Comments");
 }
 
 void RedditBrowser::resizeEvent(QResizeEvent* event)
@@ -66,25 +61,26 @@ void RedditBrowser::showEvent(QShowEvent* event)
 {
 	if (firstShow)
 	{
-		history[story.id] = QVariant(story.pubDate);
+		markAsRead();		
 		firstShow = false;
 	}
 }
 
-void RedditBrowser::loadFinished(bool ok)
+void RedditBrowser::markAsRead()
 {
-	progress->setValue(0);
-	progress->setRange(0, 1);
-	progress->setEnabled(false);
-	progress->setVisible(false);
+	history[story.id] = QVariant(story.pubDate);
 }
 
-void RedditBrowser::loadStarted()
+void RedditBrowser::loadFinishedInt(bool ok)
 {
-	progress->setValue(0);
-	progress->setRange(0, 0);
-	progress->setEnabled(true);
-	progress->setVisible(true);
+	loading = false;
+	emit loadFinished();	
+}
+
+void RedditBrowser::loadStartedInt()
+{
+	loading = true;
+	emit loadStarted();
 }
 
 void RedditBrowser::urlChanged(const QUrl& u)
@@ -95,4 +91,25 @@ void RedditBrowser::urlChanged(const QUrl& u)
 void RedditBrowser::openBrowser()
 {
 	QDesktopServices::openUrl(QUrl(url->text()));
+}
+
+int RedditBrowser::getFrame()
+{
+	return frame;
+}
+
+void RedditBrowser::setFrame(int frame_)
+{
+	frame = frame_;
+}
+
+
+bool RedditBrowser::isLoading()
+{
+	return loading;
+}
+
+RedditStory RedditBrowser::getStory()
+{
+	return story;
 }
