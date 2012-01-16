@@ -589,7 +589,7 @@
 						Name="VCCustomBuildTool"
 						Description="Rcc&apos;ing $(InputFileName)..."
 						CommandLine="&quot;$(QTDIR)\bin\rcc.exe&quot; -name &quot;$(InputName)&quot; -no-compress &quot;$(InputPath)&quot; -o .\GeneratedFiles\qrc_$(InputName).cpp&#x0D;&#x0A;"
-						AdditionalDependencies="$(InputPath);..\..\resources\spinner.png"
+						AdditionalDependencies="$(InputPath);..\..\resources\spinner.png;..\..\resources\icon.png"
 						Outputs=".\GeneratedFiles\qrc_$(InputName).cpp"
 					/>
 				</FileConfiguration>
@@ -600,7 +600,7 @@
 						Name="VCCustomBuildTool"
 						Description="Rcc&apos;ing $(InputFileName)..."
 						CommandLine="&quot;$(QTDIR)\bin\rcc.exe&quot; -name &quot;$(InputName)&quot; -no-compress &quot;$(InputPath)&quot; -o .\GeneratedFiles\qrc_$(InputName).cpp&#x0D;&#x0A;"
-						AdditionalDependencies="$(InputPath);..\..\resources\spinner.png"
+						AdditionalDependencies="$(InputPath);..\..\resources\spinner.png;..\..\resources\icon.png"
 						Outputs=".\GeneratedFiles\qrc_$(InputName).cpp"
 					/>
 				</FileConfiguration>
@@ -655,6 +655,10 @@
 						UsePrecompiledHeader="0"
 					/>
 				</FileConfiguration>
+			</File>
+			<File
+				RelativePath=".\resource.h"
+				>
 			</File>
 			<File
 				RelativePath=".\GeneratedFiles\ui_allochthon.h"
@@ -827,6 +831,14 @@
 				</File>
 			</Filter>
 		</Filter>
+		<File
+			RelativePath="..\..\resources\icon.ico"
+			>
+		</File>
+		<File
+			RelativePath="..\..\resources\icon.png"
+			>
+		</File>
 	</Files>
 	<Globals>
 		<Global

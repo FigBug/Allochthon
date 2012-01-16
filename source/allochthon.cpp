@@ -14,6 +14,8 @@ Allochthon::Allochthon(QWidget *parent, Qt::WFlags flags)
 	ui.centralWidget->setLayout(ui.mainLayout);
 	ui.mainLayout->setContentsMargins(QMargins(10, 10, 10, 10));
 
+	setWindowIcon(QIcon(":/allochthon/icon.png"));
+
 	restoreLayout();
 
 	loadReddits();
