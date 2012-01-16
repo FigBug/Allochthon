@@ -231,6 +231,8 @@ void Allochthon::tabCloseRequested(int index)
 
 	if (ui.tabs->count() == 0 || (ui.tabs->count() + stories.count()) % 20 == 0)
 		saveHistory();
+
+	updateStatusBar();
 }
 
 void Allochthon::closeTab()
