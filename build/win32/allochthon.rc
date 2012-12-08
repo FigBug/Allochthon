@@ -48,7 +48,7 @@ END
 
 // Icon with lowest ID value placed first to ensure application icon
 // remains consistent on all systems.
-IDI_ICON1               ICON                    "C:\\dev.mine\\allochthon\\resources\\icon.ico"
+IDI_ICON1               ICON                    "..\\..\\resources\\icon.ico"
 #endif    // English (U.S.) resources
 /////////////////////////////////////////////////////////////////////////////
 

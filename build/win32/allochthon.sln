@@ -1,7 +1,7 @@
 ﻿
-Microsoft Visual Studio Solution File, Format Version 10.00
-# Visual Studio 2008
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "allochthon", "allochthon.vcproj", "{C4A7570C-2EF9-48CE-A52E-A5C14D27010A}"
+Microsoft Visual Studio Solution File, Format Version 11.00
+# Visual Studio 2010
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "allochthon", "allochthon.vcxproj", "{C4A7570C-2EF9-48CE-A52E-A5C14D27010A}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
